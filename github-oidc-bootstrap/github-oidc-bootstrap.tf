@@ -1,8 +1,14 @@
+data "aws_caller_identity" "current" {}
+
+# 1. Existing GitHub OIDC Provider in AWS
 data "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
 }
 
-data "aws_iam_policy_document" "github_trust" {
+# ==========================================================
+# ROLE 1: Infrastructure Pipeline Role (tf-coaching17-infra)
+# ==========================================================
+data "aws_iam_policy_document" "infra_trust" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -15,46 +21,140 @@ data "aws_iam_policy_document" "github_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository_username}*/${var.github_repository_name}*:*"]
+      values   = ["repo:${var.github_repository_username}/${var.github_infra_repository_name}:*"]
     }
   }
 }
 
-resource "aws_iam_role" "github_oidc" {
-  name               = var.github_oidc_role_name
-  assume_role_policy = data.aws_iam_policy_document.github_trust.json
+resource "aws_iam_role" "infra_deployer_role" {
+  name               = "tk-tf-coaching17-infra-deployer-role"
+  assume_role_policy = data.aws_iam_policy_document.infra_trust.json
+
+  tags = {
+    Name    = "tk-tf-coaching17-infra-deployer-role"
+    Purpose = "CI/CD Role for Terraform Infrastructure Repo"
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryPowerUser" {
-  role       = aws_iam_role.github_oidc.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+# S3 Remote State Backend Access Policy
+resource "aws_iam_policy" "terraform_backend_policy" {
+  name        = "tk-tf-coaching17-infra-backend-policy"
+  description = "Permissions for Terraform GitHub Actions to access remote S3 state"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "S3StateBucketAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = "arn:aws:s3:::${var.tfstate_bucket_name}"
+      },
+      {
+        Sid    = "S3StateObjectAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = "arn:aws:s3:::${var.tfstate_bucket_name}/tk/*"
+      }
+    ]
+  })
 }
 
-variable "github_repository_username" {
-  description = "GitHub repository username"
-  type        = string
-  default     = "peh3"
+resource "aws_iam_role_policy_attachment" "infra_backend_attach" {
+  role       = aws_iam_role.infra_deployer_role.name
+  policy_arn = aws_iam_policy.terraform_backend_policy.arn
 }
 
-variable "github_repository_name" {
-  description = "GitHub repository name"
-  type        = string
-  default     = "coaching17-app"
+# Permissions to create/manage ECR, ECS, Security Groups, and IAM roles
+resource "aws_iam_policy" "infra_provisioning_policy" {
+  name        = "tk-tf-coaching17-infra-provisioning-policy"
+  description = "Permissions for Terraform to provision ECS, ECR, and Networking"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ManageInfraResources"
+        Effect = "Allow"
+        Action = [
+          "ecr:*",
+          "ecs:*",
+          "ec2:Describe*",
+          "ec2:*SecurityGroup*",
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:TagRole",
+          "iam:UntagRole",
+          "iam:CreatePolicy",
+          "iam:DeletePolicy",
+          "iam:GetPolicy",
+          "iam:GetPolicyVersion",
+          "iam:ListPolicyVersions",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:ListAttachedRolePolicies"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
-variable "github_oidc_role_name" {
-  description = "Name of the GitHub OIDC role"
-  type        = string
-  default     = "tk-tf-coaching17-github-oidc-role"
+resource "aws_iam_role_policy_attachment" "infra_provisioning_attach" {
+  role       = aws_iam_role.infra_deployer_role.name
+  policy_arn = aws_iam_policy.infra_provisioning_policy.arn
 }
 
-output "github_oidc_role_arn" {
-  value = aws_iam_role.github_oidc.arn
+# ==========================================================
+# ROLE 2: Application Pipeline Role (coaching17-app)
+# ==========================================================
+data "aws_iam_policy_document" "app_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:${var.github_repository_username}/${var.github_app_repository_name}:*"]
+    }
+  }
 }
 
-resource "aws_iam_policy" "ecs_deploy_policy" {
-  name        = "tk-tf-coaching17-ecs-deploy-policy"
-  description = "Permissions for GitHub Actions to deploy to ECS"
+resource "aws_iam_role" "app_deployer_role" {
+  name               = "tk-tf-coaching17-app-deployer-role"
+  assume_role_policy = data.aws_iam_policy_document.app_trust.json
+
+  tags = {
+    Name    = "tk-tf-coaching17-app-deployer-role"
+    Purpose = "CI/CD Role for Container App Deployment"
+  }
+}
+
+# Attach ECR PowerUser (Build, tag, and push container images)[cite: 9]
+resource "aws_iam_role_policy_attachment" "app_ecr_attach" {
+  role       = aws_iam_role.app_deployer_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"[cite: 9]
+}
+
+# Scoped ECS Task Deployment Permissions[cite: 9]
+resource "aws_iam_policy" "app_ecs_deploy_policy" {
+  name        = "tk-tf-coaching17-app-ecs-deploy-policy"
+  description = "Permissions for App CI/CD to deploy tasks to ECS"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -77,13 +177,50 @@ resource "aws_iam_policy" "ecs_deploy_policy" {
         Action = [
           "iam:PassRole"
         ]
-        Resource = "arn:aws:iam::255945442255:role/*"
+        Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/*"
       }
     ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "github_oidc_ecs_deploy" {
-  role       = aws_iam_role.github_oidc.name
-  policy_arn = aws_iam_policy.ecs_deploy_policy.arn
+resource "aws_iam_role_policy_attachment" "app_ecs_deploy_attach" {
+  role       = aws_iam_role.app_deployer_role.name
+  policy_arn = aws_iam_policy.app_ecs_deploy_policy.arn
+}
+
+# ==========================================================
+# Variables & Outputs
+# ==========================================================
+variable "github_repository_username" {
+  description = "GitHub repository username"
+  type        = string
+  default     = "peh3"[cite: 9]
+}
+
+variable "github_app_repository_name" {
+  description = "GitHub repository name for application"
+  type        = string
+  default     = "coaching17-app"[cite: 9]
+}
+
+variable "github_infra_repository_name" {
+  description = "GitHub repository name for Terraform infra"
+  type        = string
+  default     = "tf-coaching17-infra"
+}
+
+variable "tfstate_bucket_name" {
+  description = "S3 bucket storing terraform state"
+  type        = string
+  default     = "sctp-tfstate-ce13"[cite: 7]
+}
+
+output "infra_deployer_role_arn" {
+  description = "Use as OIDC_ROLE in the tf-coaching17-infra repo"
+  value       = aws_iam_role.infra_deployer_role.arn
+}
+
+output "app_deployer_role_arn" {
+  description = "Use as OIDC_ROLE in the coaching17-app repo"
+  value       = aws_iam_role.app_deployer_role.arn
 }
