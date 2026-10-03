@@ -49,14 +49,38 @@ resource "aws_iam_role_policy_attachment" "infra_backend_attach" {
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
     "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
     "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
-    "arn:aws:iam::aws:policy/IAMFullAccess",
-    "arn:aws:iam::aws:policy/ApplicationAutoScalingFullAccess"
+    "arn:aws:iam::aws:policy/IAMFullAccess"
   ])
 
   role       = aws_iam_role.infra_deployer_role.name
   policy_arn = each.value
   #role       = aws_iam_role.infra_deployer_role.name
-  #policy_arn = aws_iam_policy.terraform_backend_policy.arn
+  #policy_arn = aws_
+}
+
+# Custom Policy to supply missing Application Auto Scaling permissions
+resource "aws_iam_policy" "app_autoscaling_policy" {
+  name        = "tk-tf-coaching17-infra-autoscaling-policy"
+  description = "Allows Terraform to manage ECS Application Auto Scaling targets and policies"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowAppAutoScaling"
+        Effect = "Allow"
+        Action = [
+          "application-autoscaling:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "infra_autoscaling_attach" {
+  role       = aws_iam_role.infra_deployer_role.name
+  policy_arn = aws_iam_policy.app_autoscaling_policy.arn
 }
 
 # ==========================================================
