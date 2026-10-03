@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  plan:
+  terraform-plan:
     name: Terraform Plan (${{ github.event.inputs.environment }})
     runs-on: ubuntu-latest
 
