@@ -1,6 +1,6 @@
 name: Terraform CI (Manual)
 # Adds the environment directly to the run dashboard title
-run-name: "Terraform CI [${{ inputs.environment }}] by @${{ github.actor }}"
+run-name: "Terraform CI (Manual)[${{ inputs.environment }}] by @${{ github.actor }}"
 
 on:
   workflow_dispatch:
