@@ -1,18 +1,18 @@
 name: Terraform Multi-Environment Pipeline
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '**.tf'
-      - 'envs/**.tfvars'
-  push:
-    branches:
-      - main
-    paths:
-      - '**.tf'
-      - 'envs/**.tfvars'
+  #pull_request:
+  #  branches:
+  #    - main
+  #  paths:
+  #    - '**.tf'
+  #    - 'envs/**.tfvars'
+  #push:
+  #  branches:
+  #    - main
+  #  paths:
+  #    - '**.tf'
+   #   - 'envs/**.tfvars'
   workflow_dispatch:
     inputs:
       environment:

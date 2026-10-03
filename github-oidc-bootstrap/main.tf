@@ -21,7 +21,7 @@ data "aws_iam_policy_document" "infra_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository_username}/${var.github_infra_repository_name}:*"]
+      values   = ["repo:${var.github_repository_username}*/${var.github_infra_repository_name}*:*"]
     }
   }
 }
@@ -46,7 +46,10 @@ resource "aws_iam_role_policy_attachment" "infra_backend_attach" {
     "arn:aws:iam::aws:policy/AWSLambda_FullAccess",
     "arn:aws:iam::aws:policy/AWSWAFFullAccess",
     "arn:aws:iam::aws:policy/AmazonECS_FullAccess",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
+    "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+    "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
+    "arn:aws:iam::aws:policy/IAMFullAccess"
   ])
 
   role       = aws_iam_role.infra_deployer_role.name
@@ -71,7 +74,7 @@ data "aws_iam_policy_document" "app_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository_username}/${var.github_app_repository_name}:*"]
+      values   = ["repo:${var.github_repository_username}*/${var.github_app_repository_name}*:*"]
     }
   }
 }
