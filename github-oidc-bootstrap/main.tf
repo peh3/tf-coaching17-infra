@@ -148,7 +148,7 @@ resource "aws_iam_role" "app_deployer_role" {
 # Attach ECR PowerUser (Build, tag, and push container images)[cite: 9]
 resource "aws_iam_role_policy_attachment" "app_ecr_attach" {
   role       = aws_iam_role.app_deployer_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"[cite: 9]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"#[cite: 9]
 }
 
 # Scoped ECS Task Deployment Permissions[cite: 9]
@@ -194,13 +194,13 @@ resource "aws_iam_role_policy_attachment" "app_ecs_deploy_attach" {
 variable "github_repository_username" {
   description = "GitHub repository username"
   type        = string
-  default     = "peh3"[cite: 9]
+  default     = "peh3"#[cite: 9]
 }
 
 variable "github_app_repository_name" {
   description = "GitHub repository name for application"
   type        = string
-  default     = "coaching17-app"[cite: 9]
+  default     = "coaching17-app"#[cite: 9]
 }
 
 variable "github_infra_repository_name" {
@@ -212,7 +212,7 @@ variable "github_infra_repository_name" {
 variable "tfstate_bucket_name" {
   description = "S3 bucket storing terraform state"
   type        = string
-  default     = "sctp-tfstate-ce13"[cite: 7]
+  default     = "sctp-tfstate-ce13"#[cite: 7]
 }
 
 output "infra_deployer_role_arn" {
