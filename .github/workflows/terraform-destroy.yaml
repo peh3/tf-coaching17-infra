@@ -1,4 +1,6 @@
 name: Terraform Destroy (Manual)
+# Adds the environment directly to the run dashboard title
+run-name: "Plan [${{ inputs.environment }}] by @${{ github.actor }}"
 
 on:
   workflow_dispatch:
@@ -21,7 +23,7 @@ permissions:
   contents: read
 
 jobs:
-  destroy:
+  terraform-destroy:
     name: Terraform Destroy (${{ github.event.inputs.environment }})
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
