@@ -30,8 +30,9 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.OIDC_ROLE }}
-          aws-region: ${{ vars.AWS_REGION }}
-          
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          audience: sts.amazonaws.com
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
