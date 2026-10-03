@@ -45,7 +45,7 @@ variable "github_repository_name" {
 variable "github_oidc_role_name" {
   description = "Name of the GitHub OIDC role"
   type        = string
-  default     = "tk-coaching17-github-oidc-role"
+  default     = "tk-tf-coaching17-github-oidc-role"
 }
 
 output "github_oidc_role_arn" {
@@ -53,7 +53,7 @@ output "github_oidc_role_arn" {
 }
 
 resource "aws_iam_policy" "ecs_deploy_policy" {
-  name        = "tk-coaching17-ecs-deploy-policy"
+  name        = "tk-tf-coaching17-ecs-deploy-policy"
   description = "Permissions for GitHub Actions to deploy to ECS"
 
   policy = jsonencode({
