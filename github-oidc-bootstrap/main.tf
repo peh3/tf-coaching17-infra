@@ -36,82 +36,23 @@ resource "aws_iam_role" "infra_deployer_role" {
   }
 }
 
-# S3 Remote State Backend Access Policy
-resource "aws_iam_policy" "terraform_backend_policy" {
-  name        = "tk-tf-coaching17-infra-backend-policy"
-  description = "Permissions for Terraform GitHub Actions to access remote S3 state"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "S3StateBucketAccess"
-        Effect = "Allow"
-        Action = [
-          "s3:ListBucket",
-          "s3:GetBucketLocation"
-        ]
-        Resource = "arn:aws:s3:::${var.tfstate_bucket_name}"
-      },
-      {
-        Sid    = "S3StateObjectAccess"
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject"
-        ]
-        Resource = "arn:aws:s3:::${var.tfstate_bucket_name}/tk/*"
-      }
-    ]
-  })
-}
-
 resource "aws_iam_role_policy_attachment" "infra_backend_attach" {
+  for_each = toset([
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    "arn:aws:iam::aws:policy/AmazonRoute53FullAccess",
+    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+    "arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator",
+    "arn:aws:iam::aws:policy/AWSCertificateManagerFullAccess",
+    "arn:aws:iam::aws:policy/AWSLambda_FullAccess",
+    "arn:aws:iam::aws:policy/AWSWAFFullAccess",
+    "arn:aws:iam::aws:policy/AmazonECS_FullAccess",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+  ])
+
   role       = aws_iam_role.infra_deployer_role.name
-  policy_arn = aws_iam_policy.terraform_backend_policy.arn
-}
-
-# Permissions to create/manage ECR, ECS, Security Groups, and IAM roles
-resource "aws_iam_policy" "infra_provisioning_policy" {
-  name        = "tk-tf-coaching17-infra-provisioning-policy"
-  description = "Permissions for Terraform to provision ECS, ECR, and Networking"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "ManageInfraResources"
-        Effect = "Allow"
-        Action = [
-          "ecr:*",
-          "ecs:*",
-          "ec2:Describe*",
-          "ec2:*SecurityGroup*",
-          "iam:CreateRole",
-          "iam:DeleteRole",
-          "iam:GetRole",
-          "iam:PassRole",
-          "iam:TagRole",
-          "iam:UntagRole",
-          "iam:CreatePolicy",
-          "iam:DeletePolicy",
-          "iam:GetPolicy",
-          "iam:GetPolicyVersion",
-          "iam:ListPolicyVersions",
-          "iam:AttachRolePolicy",
-          "iam:DetachRolePolicy",
-          "iam:ListAttachedRolePolicies"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "infra_provisioning_attach" {
-  role       = aws_iam_role.infra_deployer_role.name
-  policy_arn = aws_iam_policy.infra_provisioning_policy.arn
+  policy_arn = each.value
+  #role       = aws_iam_role.infra_deployer_role.name
+  #policy_arn = aws_iam_policy.terraform_backend_policy.arn
 }
 
 # ==========================================================
@@ -148,7 +89,7 @@ resource "aws_iam_role" "app_deployer_role" {
 # Attach ECR PowerUser (Build, tag, and push container images)[cite: 9]
 resource "aws_iam_role_policy_attachment" "app_ecr_attach" {
   role       = aws_iam_role.app_deployer_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"#[cite: 9]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser" #[cite: 9]
 }
 
 # Scoped ECS Task Deployment Permissions[cite: 9]
@@ -194,13 +135,13 @@ resource "aws_iam_role_policy_attachment" "app_ecs_deploy_attach" {
 variable "github_repository_username" {
   description = "GitHub repository username"
   type        = string
-  default     = "peh3"#[cite: 9]
+  default     = "peh3" #[cite: 9]
 }
 
 variable "github_app_repository_name" {
   description = "GitHub repository name for application"
   type        = string
-  default     = "coaching17-app"#[cite: 9]
+  default     = "coaching17-app" #[cite: 9]
 }
 
 variable "github_infra_repository_name" {
@@ -212,7 +153,7 @@ variable "github_infra_repository_name" {
 variable "tfstate_bucket_name" {
   description = "S3 bucket storing terraform state"
   type        = string
-  default     = "sctp-tfstate-ce13"#[cite: 7]
+  default     = "sctp-tfstate-ce13" #[cite: 7]
 }
 
 output "infra_deployer_role_arn" {
