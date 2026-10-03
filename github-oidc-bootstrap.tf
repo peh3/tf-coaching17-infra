@@ -51,3 +51,39 @@ variable "github_oidc_role_name" {
 output "github_oidc_role_arn" {
   value = aws_iam_role.github_oidc.arn
 }
+
+resource "aws_iam_policy" "ecs_deploy_policy" {
+  name        = "tk-coaching17-ecs-deploy-policy"
+  description = "Permissions for GitHub Actions to deploy to ECS"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ECSDeploymentPermissions"
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeTaskDefinition",
+          "ecs:RegisterTaskDefinition",
+          "ecs:DeregisterTaskDefinition",
+          "ecs:DescribeServices",
+          "ecs:UpdateService"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "PassRoleForECSTasks"
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = "arn:aws:iam::255945442255:role/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_oidc_ecs_deploy" {
+  role       = aws_iam_role.github_oidc.name
+  policy_arn = aws_iam_policy.ecs_deploy_policy.arn
+}
