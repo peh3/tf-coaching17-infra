@@ -49,7 +49,8 @@ resource "aws_iam_role_policy_attachment" "infra_backend_attach" {
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
     "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
     "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
-    "arn:aws:iam::aws:policy/IAMFullAccess"
+    "arn:aws:iam::aws:policy/IAMFullAccess",
+    "arn:aws:iam::aws:policy/ApplicationAutoScalingFullAccess"
   ])
 
   role       = aws_iam_role.infra_deployer_role.name
