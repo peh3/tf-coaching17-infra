@@ -1,4 +1,4 @@
-name: Terraform CD (Manual Apply)
+name: Terraform CD (Manual)
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  apply:
+  terraform-apply:
     name: Terraform Apply (${{ github.event.inputs.environment }})
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}  # Enforces GitHub environment protection rules if configured
