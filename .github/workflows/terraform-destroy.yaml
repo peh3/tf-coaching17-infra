@@ -1,0 +1,61 @@
+name: Terraform Destroy (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment to DESTROY'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
+      confirmation:
+        description: 'Type the environment name to confirm destruction (e.g. dev, uat, prod)'
+        required: true
+
+permissions:
+  id-token: write   # Required for AWS OIDC authentication
+  contents: read
+
+jobs:
+  destroy:
+    name: Terraform Destroy (${{ github.event.inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Validate Confirmation Input
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" != "${{ github.event.inputs.environment }}" ]; then
+            echo "::error::Confirmation mismatch! Expected '${{ github.event.inputs.environment }}', but got '${{ github.event.inputs.confirmation }}'."
+            exit 1
+          fi
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.OIDC_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="key=tk/tf-coaching17-infra-${{ github.event.inputs.environment }}.tfstate" \
+            -reconfigure
+
+      - name: Terraform Destroy
+        run: |
+          terraform destroy \
+            -var-file="envs/${{ github.event.inputs.environment }}.tfvars" \
+            -auto-approve
