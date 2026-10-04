@@ -131,6 +131,9 @@ module "ecs" {
       memory        = var.container_memory
       desired_count = var.desired_count
 
+      # Explicitly set the task definition family name:
+      family = "${local.prefix}-${var.environment}-task"
+
       # Disable the module's default task role and pass the custom one (Challenge 1)
       create_tasks_iam_role = false
       tasks_iam_role_arn    = aws_iam_role.custom_task_role.arn
