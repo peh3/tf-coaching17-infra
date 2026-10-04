@@ -132,7 +132,7 @@ module "ecs" {
       desired_count = var.desired_count
 
       # Explicitly set the task definition family name:
-      family = "${local.prefix}-${var.environment}-task"
+      family = "${local.prefix}-task"
 
       # Disable the module's default task role and pass the custom one (Challenge 1)
       create_tasks_iam_role = false
