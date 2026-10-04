@@ -27,7 +27,7 @@ on:
       action:
         description: 'Terraform action'
         required: true
-        default: 'apply'
+        default: 'plan'
         type: choice
         options:
           - plan
