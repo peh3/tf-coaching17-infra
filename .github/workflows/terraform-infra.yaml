@@ -24,15 +24,15 @@ on:
           - dev
           - uat
           - prod
-      # action:
-      #   description: 'Terraform action'
-      #   required: true
-      #   default: 'apply'
-      #   type: choice
-      #   options:
-      #     - plan
-      #     - apply
-      #     - destroy
+      action:
+        description: 'Terraform action'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
 
 permissions:
   id-token: write   # Required for AWS OIDC authentication
@@ -60,7 +60,7 @@ jobs:
           terraform_version: 1.9.0
 
       - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.OIDC_ROLE }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
@@ -104,7 +104,7 @@ jobs:
           terraform_version: 1.9.0
 
       - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.OIDC_ROLE }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
